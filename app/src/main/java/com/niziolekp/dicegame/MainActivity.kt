@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -102,6 +103,104 @@ fun StartScreen(onStart: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onStart) {
             Text("Start Game", fontSize = 24.sp)
+        }
+    }
+}
+@Composable
+fun StartScreen(
+    onStart: () -> Unit,
+    onCreateRoom: () -> Unit,
+    onJoinRoom: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            "Welcome to Dice Game!",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(onClick = onStart) {
+            Text("Start Game", fontSize = 24.sp)
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = onCreateRoom) {
+            Text("Create Room", fontSize = 24.sp)
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = onJoinRoom) {
+            Text("Join Room", fontSize = 24.sp)
+        }
+    }
+}
+@Composable
+fun CreateRoomScreen(onCreate: (roomId: String) -> Unit) {
+    var roomId by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            "Create a Room",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedTextField(
+            value = roomId,
+            onValueChange = { roomId = it },
+            label = { Text("Room ID") }
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = { onCreate(roomId) },
+            enabled = roomId.isNotBlank()
+        ) {
+            Text("Create", fontSize = 24.sp)
+        }
+    }
+}
+
+@Composable
+fun JoinRoomScreen(onJoin: (roomId: String) -> Unit) {
+    var roomId by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            "Join a Room",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedTextField(
+            value = roomId,
+            onValueChange = { roomId = it },
+            label = { Text("Room ID") }
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = { onJoin(roomId) },
+            enabled = roomId.isNotBlank()
+        ) {
+            Text("Join", fontSize = 24.sp)
         }
     }
 }
@@ -269,6 +368,7 @@ fun DiceGame(modifier: Modifier = Modifier, onEndGame: (String, Int, Int) -> Uni
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     ScoreTable(
+                        currentPlayer = players[currentPlayerIndex],
                         player1 = players[0],
                         player2 = players[1],
                         diceResults = diceResults ?: emptyList(),
@@ -369,6 +469,7 @@ fun DiceGame(modifier: Modifier = Modifier, onEndGame: (String, Int, Int) -> Uni
             }
             Spacer(modifier = Modifier.height(16.dp))
             ScoreTable(
+                currentPlayer = players[currentPlayerIndex],
                 player1 = players[0],
                 player2 = players[1],
                 diceResults = diceResults ?: emptyList(),
@@ -405,6 +506,7 @@ fun DiceGame(modifier: Modifier = Modifier, onEndGame: (String, Int, Int) -> Uni
 
 @Composable
 fun ScoreTable(
+    currentPlayer: Player,
     player1: Player,
     player2: Player,
     diceResults: List<Int>,
@@ -412,8 +514,7 @@ fun ScoreTable(
     rollRequired: Boolean,
     onSelectCategory: (Category?) -> Unit
 ) {
-    val potentialScores1 = if (rollRequired) calculatePotentialScores(player1, diceResults) else emptyMap()
-    val potentialScores2 = if (rollRequired) calculatePotentialScores(player2, diceResults) else emptyMap()
+    val potentialScores = if (rollRequired) calculatePotentialScores(currentPlayer, diceResults) else emptyMap()
 
     Column(
         modifier = Modifier
@@ -444,19 +545,19 @@ fun ScoreTable(
                 Text(text = category.displayName, fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 Divider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.fillMaxHeight().width(1.dp))
                 Text(
-                    text = player1.scoreCard[category]?.toString() ?: potentialScores1[category]?.toString() ?: "",
+                    text = player1.scoreCard[category]?.toString() ?: (if (currentPlayer == player1) potentialScores[category]?.toString() ?: "" else ""),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (player1.scoreCard[category] == null) Color.Gray else Color.Red,
+                    color = if (player1.scoreCard[category] == null && currentPlayer == player1) Color.Gray else Color.Red,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center
                 )
                 Divider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.fillMaxHeight().width(1.dp))
                 Text(
-                    text = player2.scoreCard[category]?.toString() ?: potentialScores2[category]?.toString() ?: "",
+                    text = player2.scoreCard[category]?.toString() ?: (if (currentPlayer == player2) potentialScores[category]?.toString() ?: "" else ""),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (player2.scoreCard[category] == null) Color.Gray else Color.Red,
+                    color = if (player2.scoreCard[category] == null && currentPlayer == player2) Color.Gray else Color.Red,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center
                 )
