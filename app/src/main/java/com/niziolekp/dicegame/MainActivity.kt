@@ -65,9 +65,11 @@ class MainActivity : ComponentActivity() {
                     var player2Score by rememberSaveable { mutableStateOf(0) }
 
                     when (appState) {
-                        AppState.START -> StartScreen {
-                            appState = AppState.GAME
-                        }
+                        AppState.START -> StartScreen(
+                            onStart = { appState = AppState.GAME },
+                            onCreateRoom = { appState = AppState.CREATE_ROOM },
+                            onJoinRoom = { appState = AppState.JOIN_ROOM }
+                        )
                         AppState.GAME -> {
                             DiceRollerApp { winningPlayer, score1, score2 ->
                                 winner = winningPlayer
@@ -79,6 +81,17 @@ class MainActivity : ComponentActivity() {
                         AppState.END -> EndScreen(winner, player1Score, player2Score) {
                             appState = AppState.START
                         }
+                        AppState.CREATE_ROOM -> CreateRoomScreen { roomId ->
+                            // Obsługa stworzenia pokoju
+                            // Możesz także zmienić stan aplikacji na GameState.GAME po utworzeniu pokoju
+                            appState = AppState.GAME
+                        }
+                        AppState.JOIN_ROOM -> JoinRoomScreen { roomId ->
+                            // Obsługa dołączania do pokoju
+                            // Możesz także zmienić stan aplikacji na GameState.GAME po dołączeniu do pokoju
+                            appState = AppState.GAME
+                        }
+
                     }
                 }
             }
@@ -86,26 +99,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-enum class AppState {
-    START, GAME, END
-}
-
-@Composable
-fun StartScreen(onStart: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("Welcome to Dice Game!", fontSize = 32.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onStart) {
-            Text("Start Game", fontSize = 24.sp)
-        }
-    }
-}
 @Composable
 fun StartScreen(
     onStart: () -> Unit,
@@ -119,21 +112,16 @@ fun StartScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            "Welcome to Dice Game!",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
+        Text("Welcome to Dice Game!", fontSize = 32.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onStart) {
             Text("Start Game", fontSize = 24.sp)
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onCreateRoom) {
             Text("Create Room", fontSize = 24.sp)
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onJoinRoom) {
             Text("Join Room", fontSize = 24.sp)
         }
@@ -204,7 +192,9 @@ fun JoinRoomScreen(onJoin: (roomId: String) -> Unit) {
         }
     }
 }
-
+enum class AppState {
+    START, GAME, END, JOIN_ROOM, CREATE_ROOM
+}
 @Composable
 fun EndScreen(winner: String, player1Score: Int, player2Score: Int, onRestart: () -> Unit) {
     Column(
