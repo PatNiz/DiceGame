@@ -132,7 +132,6 @@ fun EndScreen(winner: String, player1Score: Int, player2Score: Int, onRestart: (
 fun DiceRollerApp(onEndGame: (String, Int, Int) -> Unit) {
     DiceGame(modifier = Modifier.fillMaxSize().wrapContentSize(Alignment.Center), onEndGame)
 }
-
 @Composable
 fun DiceGame(modifier: Modifier = Modifier, onEndGame: (String, Int, Int) -> Unit) {
     var players by rememberSaveable { mutableStateOf(mutableListOf(Player(name = "Player 1"), Player(name = "Player 2"))) }
@@ -144,10 +143,12 @@ fun DiceGame(modifier: Modifier = Modifier, onEndGame: (String, Int, Int) -> Uni
     var rollRequired by rememberSaveable { mutableStateOf(false) }
     var rollCount by rememberSaveable { mutableStateOf(0) }
     val isRollEnabled by remember { derivedStateOf { !rollRequired || diceResults == null } }
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
-    val diceSize = (screenWidth / 5) - 16.dp
 
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+    val screenWidth = configuration.screenWidthDp.dp
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val diceSize = if (isLandscape) (screenHeight / 6) else (screenWidth / 6)
     val imageResources = diceResults?.map { result ->
         when (result) {
             1 -> R.drawable.dice_1
@@ -157,101 +158,250 @@ fun DiceGame(modifier: Modifier = Modifier, onEndGame: (String, Int, Int) -> Uni
             5 -> R.drawable.dice_5
             else -> R.drawable.dice_6
         }
-    } ?: emptyList()
+    } ?: List(5) { R.drawable.dice_1 } // Dummy images if diceResults is empty
 
-    Column(modifier = modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = "Current Player: ${currentPlayer.name}", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-
-        if (diceResults == null || rollCount == 0) {
-            Button(
-                onClick = {
-                    diceResults = List(5) { (1..6).random() }
-                    diceSelection = List(5) { false }
-                    currentPlayer.rollsLeft -= 1
-                    rollRequired = true
-                    rollCount = 1
-                },
-                enabled = isRollEnabled,
-                modifier = Modifier.fillMaxWidth().padding(16.dp)
+    Column(
+        modifier = modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (isLandscape) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "Roll to Start", fontSize = 24.sp)
-            }
-        } else {
-            Spacer(modifier = Modifier.height(16.dp))
-            val diceContent = @Composable {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    imageResources.forEachIndexed { index, resource ->
-                        Box(
-                            modifier = Modifier
-                                .size(diceSize)
-                                .background(if (diceSelection[index]) Color.Gray else Color.Transparent)
-                                .clickable { diceSelection = diceSelection.toMutableList().also { it[index] = !it[index] } }
+                Column(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    if (diceResults != null) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Row {
+                                imageResources.take(3).forEachIndexed { index, resource ->
+                                    Box(
+                                        modifier = Modifier
+                                            .size(diceSize)
+                                            .background(if (diceSelection[index]) Color.Gray else Color.Transparent)
+                                            .clickable {
+                                                diceSelection = diceSelection.toMutableList().also { it[index] = !it[index] }
+                                            }
+                                            .padding(4.dp)
+                                    ) {
+                                        Image(
+                                            painter = painterResource(resource),
+                                            contentDescription = diceResults?.get(index).toString(),
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                }
+                            }
+                            Row {
+                                imageResources.drop(3).forEachIndexed { index, resource ->
+                                    Box(
+                                        modifier = Modifier
+                                            .size(diceSize)
+                                            .background(if (diceSelection[index + 3]) Color.Gray else Color.Transparent)
+                                            .clickable {
+                                                diceSelection = diceSelection.toMutableList().also { it[index + 3] = !it[index + 3] }
+                                            }
+                                            .padding(4.dp)
+                                    ) {
+                                        Image(
+                                            painter = painterResource(resource),
+                                            contentDescription = diceResults?.get(index + 3).toString(),
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = {
+                                if (rollCount < 3) {
+                                    diceResults = diceResults?.mapIndexed { index, value ->
+                                        if (diceSelection[index]) value else (1..6).random()
+                                    }
+                                    rollCount++
+                                }
+                                if (rollCount >= 3 || currentPlayer.rollsLeft <= 0) {
+                                    rollRequired = true
+                                }
+                            },
+                            enabled = currentPlayer.rollsLeft > 0 && rollCount < 3,
+                            modifier = Modifier.fillMaxWidth().padding(16.dp)
                         ) {
-                            Image(painter = painterResource(resource), contentDescription = diceResults?.get(index).toString(), modifier = Modifier.fillMaxSize())
+                            Text(text = if (rollCount < 3) "Roll Again" else "Roll", fontSize = 24.sp)
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                diceResults = List(5) { (1..6).random() }
+                                diceSelection = List(5) { false }
+                                currentPlayer.rollsLeft -= 1
+                                rollRequired = true
+                                rollCount = 1
+                            },
+                            enabled = isRollEnabled,
+                            modifier = Modifier.fillMaxWidth().padding(16.dp)
+                        ) {
+                            Text(text = "Roll to Start", fontSize = 24.sp)
+                        }
+                    }
+                }
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    Text(
+                        text = "Current Player: ${currentPlayer.name}",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    ScoreTable(
+                        player1 = players[0],
+                        player2 = players[1],
+                        diceResults = diceResults ?: emptyList(),
+                        selectedCategory = selectedCategory,
+                        rollRequired = rollRequired
+                    ) { category ->
+                        if (rollRequired && category != null && currentPlayer.scoreCard[category] == null) {
+                            selectedCategory = category
+                            currentPlayer.scoreCard[category] = calculateScore(category, diceResults!!)
+                            rollRequired = false
+                            // Check if the game has ended
+                            val allCategoriesFilled = players.all { player ->
+                                Category.values().all { category ->
+                                    player.scoreCard[category] != null
+                                }
+                            }
+                            if (allCategoriesFilled) {
+                                val player1Score = players[0].scoreCard.values.sum()
+                                val player2Score = players[1].scoreCard.values.sum()
+                                val winner = if (player1Score > player2Score) players[0].name else if (player2Score > player1Score) players[1].name else "No one, it's a tie!"
+                                onEndGame(winner, player1Score, player2Score)
+                            } else {
+                                players = players.toMutableList()
+                                currentPlayerIndex = (currentPlayerIndex + 1) % players.size
+                                diceResults = null
+                                rollCount = 0
+                            }
                         }
                     }
                 }
             }
-
-            if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                    diceContent()
+        } else {
+            // Existing vertical mode logic (not modified)
+            Text(
+                text = "Current Player: ${currentPlayer.name}",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
+            if (diceResults == null || rollCount == 0) {
+                Button(
+                    onClick = {
+                        diceResults = List(5) { (1..6).random() }
+                        diceSelection = List(5) { false }
+                        currentPlayer.rollsLeft -= 1
+                        rollRequired = true
+                        rollCount = 1
+                    },
+                    enabled = isRollEnabled,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp)
+                ) {
+                    Text(text = "Roll to Start", fontSize = 24.sp)
                 }
             } else {
+                Spacer(modifier = Modifier.height(16.dp))
+                val diceContent = @Composable {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        imageResources.forEachIndexed { index, resource ->
+                            Box(
+                                modifier = Modifier
+                                    .size(diceSize)
+                                    .background(if (diceSelection[index]) Color.Gray else Color.Transparent)
+                                    .clickable {
+                                        diceSelection = diceSelection.toMutableList().also { it[index] = !it[index] }
+                                    }
+                            ) {
+                                Image(
+                                    painter = painterResource(resource),
+                                    contentDescription = diceResults?.get(index).toString(),
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
+                    }
+                }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     diceContent()
                 }
-            }
-
-            Button(
-                onClick = {
-                    if (rollCount < 3) {
-                        diceResults = diceResults?.mapIndexed { index, value -> if (diceSelection[index]) value else (1..6).random() }
-                        rollCount++
-                    }
-                    if (rollCount >= 3 || currentPlayer.rollsLeft <= 0) {
-                        rollRequired = true
-                    }
-                },
-                enabled = currentPlayer.rollsLeft > 0 && rollCount < 3,
-                modifier = Modifier.fillMaxWidth().padding(16.dp)
-            ) {
-                Text(text = if (rollCount < 3) "Roll Again" else "Roll", fontSize = 24.sp)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        ScoreTable(
-            player1 = players[0],
-            player2 = players[1],
-            diceResults = diceResults ?: emptyList(),
-            selectedCategory = selectedCategory,
-            rollRequired = rollRequired
-        ) { category ->
-            if (rollRequired && category != null && currentPlayer.scoreCard[category] == null) {
-                selectedCategory = category
-                currentPlayer.scoreCard[category] = calculateScore(category, diceResults!!)
-                rollRequired = false
-
-                // Check if the game has ended
-                val allCategoriesFilled = players.all { player ->
-                    Category.values().all { category -> player.scoreCard[category] != null }
+                Button(
+                    onClick = {
+                        if (rollCount < 3) {
+                            diceResults = diceResults?.mapIndexed { index, value ->
+                                if (diceSelection[index]) value else (1..6).random()
+                            }
+                            rollCount++
+                        }
+                        if (rollCount >= 3 || currentPlayer.rollsLeft <= 0) {
+                            rollRequired = true
+                        }
+                    },
+                    enabled = currentPlayer.rollsLeft > 0 && rollCount < 3,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp)
+                ) {
+                    Text(text = if (rollCount < 3) "Roll Again" else "Roll", fontSize = 24.sp)
                 }
-                if (allCategoriesFilled) {
-                    val player1Score = players[0].scoreCard.values.sum()
-                    val player2Score = players[1].scoreCard.values.sum()
-                    val winner = if (player1Score > player2Score) players[0].name else if (player2Score > player1Score) players[1].name else "No one, it's a tie!"
-                    onEndGame(winner, player1Score, player2Score)
-                } else {
-                    players = players.toMutableList()
-                    currentPlayerIndex = (currentPlayerIndex + 1) % players.size
-                    diceResults = null
-                    rollCount = 0
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            ScoreTable(
+                player1 = players[0],
+                player2 = players[1],
+                diceResults = diceResults ?: emptyList(),
+                selectedCategory = selectedCategory,
+                rollRequired = rollRequired
+            ) { category ->
+                if (rollRequired && category != null && currentPlayer.scoreCard[category] == null) {
+                    selectedCategory = category
+                    currentPlayer.scoreCard[category] = calculateScore(category, diceResults!!)
+                    rollRequired = false
+                    // Check if the game has ended
+                    val allCategoriesFilled = players.all { player ->
+                        Category.values().all { category ->
+                            player.scoreCard[category] != null
+                        }
+                    }
+                    if (allCategoriesFilled) {
+                        val player1Score = players[0].scoreCard.values.sum()
+                        val player2Score = players[1].scoreCard.values.sum()
+                        val winner = if (player1Score > player2Score) players[0].name else if (player2Score > player1Score) players[1].name else "No one, it's a tie!"
+                        onEndGame(winner, player1Score, player2Score)
+                    } else {
+                        players = players.toMutableList()
+                        currentPlayerIndex = (currentPlayerIndex + 1) % players.size
+                        diceResults = null
+                        rollCount = 0
+                    }
                 }
             }
         }
     }
 }
+
 
 @Composable
 fun ScoreTable(
@@ -262,6 +412,9 @@ fun ScoreTable(
     rollRequired: Boolean,
     onSelectCategory: (Category?) -> Unit
 ) {
+    val potentialScores1 = if (rollRequired) calculatePotentialScores(player1, diceResults) else emptyMap()
+    val potentialScores2 = if (rollRequired) calculatePotentialScores(player2, diceResults) else emptyMap()
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -291,7 +444,7 @@ fun ScoreTable(
                 Text(text = category.displayName, fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
                 Divider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.fillMaxHeight().width(1.dp))
                 Text(
-                    text = player1.scoreCard[category]?.toString() ?: "",
+                    text = player1.scoreCard[category]?.toString() ?: potentialScores1[category]?.toString() ?: "",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                     color = if (player1.scoreCard[category] == null) Color.Gray else Color.Red,
@@ -300,7 +453,7 @@ fun ScoreTable(
                 )
                 Divider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.fillMaxHeight().width(1.dp))
                 Text(
-                    text = player2.scoreCard[category]?.toString() ?: "",
+                    text = player2.scoreCard[category]?.toString() ?: potentialScores2[category]?.toString() ?: "",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                     color = if (player2.scoreCard[category] == null) Color.Gray else Color.Red,
@@ -383,3 +536,8 @@ data class Player(
     val scoreCard: MutableMap<Category, Int> = mutableStateMapOf(),
     var rollsLeft: Int = 12
 )
+fun calculatePotentialScores(player: Player, diceResults: List<Int>): Map<Category, Int> {
+    return Category.values().associateWith { category ->
+        player.scoreCard[category] ?: calculateScore(category, diceResults)
+    }
+}
