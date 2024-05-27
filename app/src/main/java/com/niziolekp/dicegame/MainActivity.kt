@@ -82,13 +82,12 @@ class MainActivity : ComponentActivity() {
                             appState = AppState.START
                         }
                         AppState.CREATE_ROOM -> CreateRoomScreen { roomId ->
-                            // Obsługa stworzenia pokoju
-                            // Możesz także zmienić stan aplikacji na GameState.GAME po utworzeniu pokoju
+                            // stan aplikacji na GameState.GAME po utworzeniu pokoju
                             appState = AppState.GAME
                         }
                         AppState.JOIN_ROOM -> JoinRoomScreen { roomId ->
                             // Obsługa dołączania do pokoju
-                            // Możesz także zmienić stan aplikacji na GameState.GAME po dołączeniu do pokoju
+                            // stan aplikacji na GameState.GAME po dołączeniu do pokoju
                             appState = AppState.GAME
                         }
 
@@ -98,7 +97,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
 fun StartScreen(
     onStart: () -> Unit,
@@ -159,7 +157,6 @@ fun CreateRoomScreen(onCreate: (roomId: String) -> Unit) {
         }
     }
 }
-
 @Composable
 fun JoinRoomScreen(onJoin: (roomId: String) -> Unit) {
     var roomId by remember { mutableStateOf("") }
@@ -216,7 +213,6 @@ fun EndScreen(winner: String, player1Score: Int, player2Score: Int, onRestart: (
         }
     }
 }
-
 @Composable
 fun DiceRollerApp(onEndGame: (String, Int, Int) -> Unit) {
     DiceGame(modifier = Modifier.fillMaxSize().wrapContentSize(Alignment.Center), onEndGame)
@@ -492,8 +488,6 @@ fun DiceGame(modifier: Modifier = Modifier, onEndGame: (String, Int, Int) -> Uni
         }
     }
 }
-
-
 @Composable
 fun ScoreTable(
     currentPlayer: Player,
@@ -585,7 +579,6 @@ enum class Category(val displayName: String) {
         }
     }
 }
-
 fun calculateScore(category: Category, diceResults: List<Int>): Int {
     val counts = diceResults.groupingBy { it }.eachCount()
     return when (category) {
@@ -604,7 +597,6 @@ fun calculateScore(category: Category, diceResults: List<Int>): Int {
         Category.CHANCE -> diceResults.sum()
     }
 }
-
 fun hasStraight(dice: List<Int>, length: Int): Boolean {
     val uniqueSortedDice = dice.toSet().sorted()
     var maxLength = 1
@@ -621,7 +613,6 @@ fun hasStraight(dice: List<Int>, length: Int): Boolean {
     }
     return maxLength >= length
 }
-
 data class Player(
     val name: String,
     val scoreCard: MutableMap<Category, Int> = mutableStateMapOf(),
