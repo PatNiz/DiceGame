@@ -6,3 +6,5 @@ The scoring categories have varying point values, some of which are fixed values
 The winner is the player who scores the most points.
 
 ![436363118_981099910035166_628248212330918205_n](https://github.com/PatNiz/DiceGame/assets/65347753/f8cb3470-846d-43b4-b3e6-2aa014967d3d)
+![image](https://github.com/PatNiz/DiceGame/assets/65347753/f805cc5d-0c29-4a15-9d49-7687507d5c39)
+
