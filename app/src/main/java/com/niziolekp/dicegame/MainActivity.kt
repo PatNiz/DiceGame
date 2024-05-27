@@ -580,6 +580,7 @@ fun Player.calculateBonus(): Int {
     return if (sum >=63) 35 else 0
 }
 
+
 fun Player.totalScoreWithBonus(): Int {
     val baseScore = scoreCard.values.sum()
     return baseScore + calculateBonus()
