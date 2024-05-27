@@ -516,6 +516,7 @@ fun ScoreTable(
             Text(text = player2.name, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
         }
         Divider(color = Color.Gray, thickness = 1.dp)
+
         Category.values().forEach { category ->
             Row(
                 modifier = Modifier
@@ -547,16 +548,41 @@ fun ScoreTable(
                 )
             }
             Divider(color = Color.Gray, thickness = 1.dp)
+
+            // Add Bonus after Sixes row immediately after the Sixes category
+            if (category == Category.SIXES) {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(IntrinsicSize.Max).animateContentSize(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "Bonus", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                    Divider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.fillMaxHeight().width(1.dp))
+                    Text(text = player1.calculateBonus().toString(), fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                    Divider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.fillMaxHeight().width(1.dp))
+                    Text(text = player2.calculateBonus().toString(), fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                }
+                Divider(color = Color.Gray, thickness = 1.dp)
+            }
         }
+
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(IntrinsicSize.Max).animateContentSize(), verticalAlignment = Alignment.CenterVertically) {
             Text(text = "Total Score", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             Divider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.fillMaxHeight().width(1.dp))
-            Text(text = player1.scoreCard.values.sum().toString(), fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text(text = (player1.totalScoreWithBonus()).toString(), fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             Divider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.fillMaxHeight().width(1.dp))
-            Text(text = player2.scoreCard.values.sum().toString(), fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+            Text(text = (player2.totalScoreWithBonus()).toString(), fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
         }
         Divider(color = Color.Gray, thickness = 1.dp)
     }
+}
+
+// Assuming Player class has methods to calculate bonus and total score with bonus
+fun Player.calculateBonus(): Int {
+    val categoriesToSum = listOf(Category.ONES, Category.TWOS, Category.THREES, Category.FOURS, Category.FIVES, Category.SIXES)
+    val sum = categoriesToSum.sumOf { scoreCard[it] ?: 0 }
+    return if (sum >=63) 35 else 0
+}
+
+fun Player.totalScoreWithBonus(): Int {
+    val baseScore = scoreCard.values.sum()
+    return baseScore + calculateBonus()
 }
 enum class Category(val displayName: String) {
     ONES("Ones"),
@@ -565,8 +591,8 @@ enum class Category(val displayName: String) {
     FOURS("Fours"),
     FIVES("Fives"),
     SIXES("Sixes"),
-    THREE_OF_A_KIND("3 of a Kind"),
-    FOUR_OF_A_KIND("4 of a Kind"),
+    THREE_OF_A_KIND("3x"),
+    FOUR_OF_A_KIND("4x"),
     FULL_HOUSE("Full House"),
     SMALL_STRAIGHT("Small Straight"),
     LARGE_STRAIGHT("Large Straight"),
